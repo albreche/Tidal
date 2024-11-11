@@ -385,8 +385,16 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.ltidal\\'" . literate-tidal-mode))
 
+(defvar tidal-ts-prettify-symbols-alist
+  (append haskell-ts-prettify-symbols-alist
+	       '(("<~" . "↜")
+		 ("~>" . "↝"))))
+		 
 (defvar tidal-ts-font-lock
   (treesit-font-lock-rules
+   :language 'haskell
+   :feature 'tidal-runner
+   `(((top_splice (variable) @nano-popout) (:match "hush" @nano-popout)))
    :language 'haskell
    :feature 'tidal-runner
    `((top_splice
@@ -473,7 +481,13 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
   `((comment str pragma parens)
     (type definition function args)
     (match keyword)
-    (tidal-pattern otherwise signature type-sig)))
+    (otherwise signature type-sig)))
+
+(defmacro tidal-ts-imenu-name-function (check-func)
+  `(lambda (node)
+     (if (funcall ,check-func node)
+	 (treesit-node-text node)
+       nil)))
 
 ;;;###autoload
 (define-derived-mode tidal-mode haskell-ts-mode
@@ -481,20 +495,34 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
   "Major mode for interacting with an inferior haskell process."
   (set (make-local-variable 'paragraph-start) "\f\\|[ \t]*$")
   (set (make-local-variable 'paragraph-separate) "[ \t\f]*$")
+  ;; imenu
+  (setq-local treesit-simple-imenu-settings
+	      (append treesit-simple-imenu-settings
+		      `(("Runner..."  tidal-ts-imenu-runner-node-p nil ,(tidal-ts-imenu-name-function #'tidal-ts-imenu-runner-node-p)))
+		      ))
+  ;; font-lock
+  (setq-local prettify-symbols-alist tidal-ts-prettify-symbols-alist)
   (setq-local treesit-font-lock-settings tidal-ts-font-lock)
   (setq-local treesit-font-lock-feature-list
 	      tidal-ts-font-lock-feature-list)
   (setq tidal-literate-p nil))
   ;;(turn-on-font-lock))
 
-;; (define-derived-mode
-;;   tidal-mode
-;;   tidal-ts-mode
-;;   "Haskell Tidal"
-;;   "Major mode for interacting with an inferior haskell process."
-;;   (setq tidal-literate-p nil)
-;;   (tree-sitter-hl-mode))
-  
+(defun tidal-ts-imenu-runner-node-p (node)
+  (and (string-match-p "infix" (treesit-node-type node))
+       (string= (treesit-node-type (treesit-node-parent node)) "top_splice")))
+;;  (treesit-query-capture node tidal-ts--imenu-runner))
+
+(defconst tidal-ts-imenu-runner-query
+  '((top_splice
+    (infix left_operand: (variable) @runner
+	   operator: (operator))
+    (:match "d[0-9]+" @runner))))
+
+(defvar tidal-ts--imenu-runner (treesit-query-compile 'haskell tidal-ts-imenu-runner-query))
+
+
+
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.tidal\\'" . tidal-mode))
 
