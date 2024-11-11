@@ -7,7 +7,7 @@
 ;; Homepage: https://github.com/tidalcycles/Tidal
 ;; Version: 0.0.1
 ;; Keywords: tools
-;; Package-Requires: ((haskell-mode "16") (emacs "25.1"))
+;; Package-Requires: ((haskell-ts-mode) (emacs "25.1"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@
 (require 'thingatpt)
 (require 'find-lisp)
 (require 'pulse)
-(require 'haskell-mode)
+(require 'haskell-ts-mode)
 (require 'subr-x)
 
 (defvar tidal-buffer
@@ -385,17 +385,116 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.ltidal\\'" . literate-tidal-mode))
 
+(defvar tidal-ts-font-lock
+  (treesit-font-lock-rules
+   :language 'haskell
+   :feature 'tidal-runner
+   `((top_splice
+     (infix left_operand: (_) @nano-italic
+	    operator: (_))))
+   :language 'haskell
+   :feature 'tidal-function
+   `((apply function: (variable) @nano-strong
+	argument: (_)))
+   :language 'haskell
+   :feature 'tidal-pattern
+   `((literal (_)) @nano-critical)
+   :language 'haskell
+   :feature 'keyword
+   `(["module" "import" "data" "let" "where" "case" "type"
+      "if" "then" "else" "of" "do" "in" "instance" "class"]
+     @font-lock-keyword-face)
+   :language 'haskell
+   :feature 'otherwise
+   :override t
+   `(((match (guards guard: (boolean (variable) @font-lock-keyword-face)))
+      (:match "otherwise" @font-lock-keyword-face)))
+   :language 'haskell
+   :feature 'type-sig
+   "(signature (binding_list (variable) @font-lock-doc-markup-face))
+    (signature (variable) @font-lock-doc-markup-face)"
+   :language 'haskell
+   :feature 'args
+   :override 'keep
+   (concat
+    "(function (infix left_operand: (_) @haskell-ts--fontify-arg))"
+    "(function (infix right_operand: (_) @haskell-ts--fontify-arg))"
+    "(generator . (_) @haskell-ts--fontify-arg)"
+    "(bind (as (variable) . (_) @haskell-ts--fontify-arg))"
+    "(patterns) @haskell-ts--fontify-arg")
+   :language 'haskell
+   :feature 'type
+   `((type) @font-lock-type-face
+     (constructor) @font-lock-type-face)
+   :language 'haskell
+   :override t
+   :feature 'signature
+   `((signature (function) @haskell-ts--fontify-type)
+     (context (function) @haskell-ts--fontify-type))
+   :language 'haskell
+   :feature 'match
+   `((match ("|" @font-lock-doc-face) ("=" @font-lock-doc-face))
+     (list_comprehension ("|" @font-lock-doc-face
+			  (qualifiers (generator "<-" @font-lock-doc-face))))
+     (match ("->" @font-lock-doc-face)))
+   :language 'haskell
+   :feature 'comment
+   `(((comment) @font-lock-comment-face)
+     ((haddock) @font-lock-doc-face))
+   :language 'haskell
+   :feature 'pragma
+   `((pragma) @font-lock-preprocessor-face
+     (cpp) @font-lock-preprocessor-face)
+   :language 'haskell
+   :feature 'str
+   :override t
+   `(
+     ;(char) @font-lock-string-face
+     ;(string) @font-lock-string-face
+     (quasiquote (quoter) @font-lock-type-face)
+     (quasiquote (quasiquote_body) @font-lock-preprocessor-face))
+   :language 'haskell
+   :feature 'parens
+   :override t
+   `(["(" ")" "[" "]"] @font-lock-operator-face
+     (infix operator: (_) @nano-salient))
+   :language 'haskell
+   :feature 'function
+   :override t
+   `((function name: (variable) @font-lock-function-name-face)
+     (function (infix (operator)  @font-lock-function-name-face))
+     (declarations (type_synomym (name) @font-lock-function-name-face))
+     (bind (variable) @font-lock-function-name-face)
+     (function (infix (infix_id (variable) @font-lock-function-name-face)))
+     (bind (as (variable) @font-lock-function-name-face))))
+  "A function that returns the treesit font lock lock settings for haskell.")
+
+(defvar tidal-ts-font-lock-feature-list
+  `((comment str pragma parens)
+    (type definition function args)
+    (match keyword)
+    (tidal-pattern otherwise signature type-sig)))
+
 ;;;###autoload
-(define-derived-mode
-  tidal-mode
-  haskell-mode
+(define-derived-mode tidal-mode haskell-ts-mode
   "Haskell Tidal"
   "Major mode for interacting with an inferior haskell process."
   (set (make-local-variable 'paragraph-start) "\f\\|[ \t]*$")
   (set (make-local-variable 'paragraph-separate) "[ \t\f]*$")
-  (setq tidal-literate-p nil)
-  (turn-on-font-lock))
+  (setq-local treesit-font-lock-settings tidal-ts-font-lock)
+  (setq-local treesit-font-lock-feature-list
+	      tidal-ts-font-lock-feature-list)
+  (setq tidal-literate-p nil))
+  ;;(turn-on-font-lock))
 
+;; (define-derived-mode
+;;   tidal-mode
+;;   tidal-ts-mode
+;;   "Haskell Tidal"
+;;   "Major mode for interacting with an inferior haskell process."
+;;   (setq tidal-literate-p nil)
+;;   (tree-sitter-hl-mode))
+  
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.tidal\\'" . tidal-mode))
 
