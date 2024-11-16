@@ -41,6 +41,24 @@
 (require 'haskell-ts-mode)
 (require 'subr-x)
 
+
+(defface tidal-hush-face  '((default :inherit 'font-lock-variable-name-face))
+  "Tidal mode face for hush."
+  :group 'tidal)
+
+(defface tidal-runner-face '((default :inherit 'font-lock-variable-name-face))
+  "Tidal mode face for runner (eg: d1)."
+  :group 'tidal)
+
+(defface tidal-function-call-face '((default :inherit 'font-lock-function-call-face))
+  "Tidal mode face for function call."
+  :group 'tidal)
+
+(defface tidal-pattern-face '((default :inherit 'font-lock-string-face))
+  "Tidal mode face for string pattern."
+  :group 'tidal)
+
+
 (defvar tidal-buffer
   "*tidal*"
   "*The name of the tidal process buffer (default=*tidal*).")
@@ -359,24 +377,24 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
   (append haskell-ts-prettify-symbols-alist
 	       '(("<~" . "↜")
 		 ("~>" . "↝"))))
-		 
+
 (defvar tidal-ts-font-lock
   (treesit-font-lock-rules
    :language 'haskell
-   :feature 'tidal-runner
-   `(((top_splice (variable) @nano-popout) (:match "hush" @nano-popout)))
+   :feature 'tidal-hush
+   `(((top_splice (variable) @tidal-hush-face) (:match "hush" @tidal-hush-face)))
    :language 'haskell
    :feature 'tidal-runner
    `((top_splice
-     (infix left_operand: (_) @nano-italic
+     (infix left_operand: (_) @tidal-runner-face 
 	    operator: (_))))
    :language 'haskell
    :feature 'tidal-function
-   `((apply function: (variable) @nano-strong
+   `((apply function: (variable) @tidal-function-call-face
 	argument: (_)))
    :language 'haskell
    :feature 'tidal-pattern
-   `((literal (_)) @nano-critical)
+   `((literal (_)) @tidal-pattern-face)
    :language 'haskell
    :feature 'keyword
    `(["module" "import" "data" "let" "where" "case" "type"
@@ -427,8 +445,6 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
    :feature 'str
    :override t
    `(
-     ;(char) @font-lock-string-face
-     ;(string) @font-lock-string-face
      (quasiquote (quoter) @font-lock-type-face)
      (quasiquote (quasiquote_body) @font-lock-preprocessor-face))
    :language 'haskell
@@ -451,7 +467,7 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
   `((comment str pragma parens)
     (type definition function args)
     (match keyword)
-    (otherwise signature type-sig)))
+    (otherwise signature type-sig tidal-runner tidal-hush tidal-functionè-call tidal-pattern)))
 
 (defmacro tidal-ts-imenu-name-function (check-func)
   `(lambda (node)
@@ -478,6 +494,7 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
   (setq tidal-literate-p nil))
   ;;(turn-on-font-lock))
 
+
 (defun tidal-ts-imenu-runner-node-p (node)
   (and (string-match-p "infix" (treesit-node-type node))
        (string= (treesit-node-type (treesit-node-parent node)) "top_splice")))
@@ -498,7 +515,8 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
     
 (defun tidal-ts-backward-operator ()
   (interactive)
-  (treesit-search-forward-goto (treesit-node-at (point)) "operator" nil -1))
+  (dotimes (c (or n 1))
+    (treesit-search-forward-goto (treesit-node-at (point)) "operator" nil 'backward)))
 
 (add-to-list 'auto-mode-alist '("\\.tidal\\'" . tidal-mode))
 
