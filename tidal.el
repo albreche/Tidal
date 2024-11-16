@@ -494,31 +494,22 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
   (setq tidal-literate-p nil))
   ;;(turn-on-font-lock))
 
-
 (defun tidal-ts-imenu-runner-node-p (node)
-  (and (string-match-p "infix" (treesit-node-type node))
+  (and (string-match-p "infix\\|variable" (treesit-node-type node))
        (string= (treesit-node-type (treesit-node-parent node)) "top_splice")))
 ;;  (treesit-query-capture node tidal-ts--imenu-runner))
-
-(defconst tidal-ts-imenu-runner-query
-  '((top_splice
-    (infix left_operand: (variable) @runner
-	   operator: (operator))
-    (:match "d[0-9]+" @runner))))
-
-(defvar tidal-ts--imenu-runner (treesit-query-compile 'haskell tidal-ts-imenu-runner-query))
 
 (defun tidal-ts-forward-operator (n)
   (interactive "p")
   (dotimes (c (or n 1))
     (treesit-search-forward-goto (treesit-node-at (point)) "operator")))
     
-(defun tidal-ts-backward-operator ()
+(defun tidal-ts-backward-operator (n)
   (interactive)
   (dotimes (c (or n 1))
     (treesit-search-forward-goto (treesit-node-at (point)) "operator" nil 'backward)))
 
 (add-to-list 'auto-mode-alist '("\\.tidal\\'" . tidal-mode))
-
+      
 (provide 'tidal)
 ;;; tidal.el ends here
