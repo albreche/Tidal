@@ -497,17 +497,17 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
 (defun tidal-ts-imenu-runner-node-p (node)
   (and (string-match-p "infix\\|variable" (treesit-node-type node))
        (string= (treesit-node-type (treesit-node-parent node)) "top_splice")))
-;;  (treesit-query-capture node tidal-ts--imenu-runner))
+
 
 (defun tidal-ts-forward-operator (n)
   (interactive "p")
   (dotimes (c (or n 1))
-    (treesit-search-forward-goto (treesit-node-at (point)) "operator")))
+    (treesit-search-forward-goto (treesit-node-at (point)) "operator") c))
     
 (defun tidal-ts-backward-operator (n)
-  (interactive)
+  (interactive "p")
   (dotimes (c (or n 1))
-    (treesit-search-forward-goto (treesit-node-at (point)) "operator" nil 'backward)))
+    (treesit-search-forward-goto (treesit-node-at (point)) "operator" nil 'backward) c))
 
 (add-to-list 'auto-mode-alist '("\\.tidal\\'" . tidal-mode))
       
