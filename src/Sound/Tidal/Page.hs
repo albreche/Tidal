@@ -15,7 +15,6 @@ import Sound.Tidal.Pattern hiding (empty)
 import Sound.Tidal.ID
 import Sound.Tidal.Params 
 import Sound.Tidal.Show
-import Sound.Tidal.Core
 
 
 import GHC.Generics (Generic)
@@ -40,7 +39,7 @@ applySliceToSlice s1 s2 = Slice $ applyFs (pats s1) (pats s2)
 -- Page
 type Slices a = Map.Map ID (Slice a)
 
-data Page a = Page {segs :: Slices a}
+data Page a = Page {slices :: Slices a}
   deriving (Generic,Functor)
 
 empty = Page Map.empty
@@ -52,15 +51,15 @@ instance Applicative Page where
 applyPageToPage :: Page (a -> b) -> Page a -> Page b 
 applyPageToPage l1 l2 = Page p
   where
-    vs k = Map.lookup k $ segs l1 
+    vs k = Map.lookup k $ slices l1 
     applyS (Just s) s2 = Just (s <*> s2)
     applyS Nothing _ = Nothing
-    p = Map.mapMaybeWithKey (\k2 s2 -> applyS (vs k2) s2) $ segs l2 
+    p = Map.mapMaybeWithKey (\k2 s2 -> applyS (vs k2) s2) $ slices l2 
 
 -- utilities
 insertSlice :: ID -> Slice a -> Page a -> Page a
 insertSlice id os op = Page np 
-  where np = Map.insertWith (\s1 s2 -> Slice { pats = (pats s1) ++ (pats s2) }) id os (segs op)
+  where np = Map.insertWith (\s1 s2 -> Slice { pats = (pats s1) ++ (pats s2) }) id os (slices op)
 
 lOrbit :: Integer -> ID
 lOrbit n = fromInteger n
@@ -70,12 +69,13 @@ instance (Show a) => Show (Slice a) where
     show s = show $ pats s
 
 instance (Show a) => Show (Page a) where
-    show l = show $ segs l
+    show l = show $ slices l
 
-insertPat id pat op = insertSlice id (Slice {pats = [pat]}) op
+-- insert a pattern as head of slice id's pats
+l id op pat = insertSlice id (Slice {pats = [pat]}) op
 
--- insertDPat id pat op = Page np
---   where np = Map.M
+
+
 
 
 

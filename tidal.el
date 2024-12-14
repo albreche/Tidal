@@ -41,6 +41,9 @@
 (require 'haskell-ts-mode)
 (require 'subr-x)
 
+(defvar tidal-ts-motion-search "variable"
+  "*predicate used in forward-sexp and backward-sexp motion")
+
 (defvar tidal-buffer
   "*tidal*"
   "*The name of the tidal process buffer (default=*tidal*).")
@@ -469,12 +472,16 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
      (bind (as (variable) @font-lock-function-name-face))))
   "A function that returns the treesit font lock lock settings for haskell.")
 
-(defvar tidal-ts-font-lock-feature-list
-  `((comment str pragma parens)
-    (type definition function args)
-    (match keyword)
-    (tidal-pattern otherwise signature type-sig)))
 
+(defun tidal-ts-forward-operator (point)
+  (interactive "d")
+  (goto-char (treesit-node-end (treesit-search-forward (treesit-node-at point) tidal-ts-motion-search))))
+
+
+(defun tidal-ts-backward-operator (point)
+  (interactive "d")
+  (goto-char (treesit-node-end (treesit-search-forward (treesit-node-at point) tidal-ts-motion-search 'backward))))
+	
 ;;;###autoload
 (define-derived-mode tidal-mode haskell-ts-mode
   "Haskell Tidal"
@@ -494,7 +501,21 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
 ;;   "Major mode for interacting with an inferior haskell process."
 ;;   (setq tidal-literate-p nil)
 ;;   (tree-sitter-hl-mode))
-  
+
+
+(defvar tidal-ts-prettify-symbols-alist
+  '(("\\" . "λ")
+    ("/=" . "≠")
+    ("->" . "→")
+    ("=>" . "⇒")
+    ("<-" . "←")
+    ("<=" . "≥")
+    (">=" . "≤")
+    ("<~" . "↜")
+    ("~>" . "↝")))
+
+(setq-local prettify-symbols-alist tidal-ts-prettify-symbols-alist)
+
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.tidal\\'" . tidal-mode))
 
