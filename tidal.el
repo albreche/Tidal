@@ -32,7 +32,6 @@
 ;; facilities are courtesy `find-lisp'.
 
 ;;; Code:
-
 (require 'scheme)
 (require 'comint)
 (require 'thingatpt)
@@ -41,7 +40,12 @@
 (require 'haskell-ts-mode)
 (require 'subr-x)
 
+(defvar tidal-ts-motion-search "variable"
+   "Predicate for forward-sexp and backward-sexp motion")
 
+(defvar tidal-ts-cc-label "xl1\\|xl2\\|xl3\\|xr1\\|xr2\\|xr3\\|xlh\\|xlm\\|xll\\|xrh\\|xrm\\|xrl\\|xlp\\|xlv\\|xrp\\|xrv"
+  "Regexp matching cc label.")
+ 
 (defface tidal-hush-face  '((default :inherit 'font-lock-variable-name-face))
   "Tidal mode face for hush."
   :group 'tidal)
@@ -56,6 +60,10 @@
 
 (defface tidal-pattern-face '((default :inherit 'font-lock-string-face))
   "Tidal mode face for string pattern."
+  :group 'tidal)
+
+(defface tidal-cc-face '((default :inherit 'font-lock-warning-face))
+  "Tidal mode face for cc labels."
   :group 'tidal)
 
 
@@ -396,6 +404,9 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
    :feature 'tidal-pattern
    `((literal (_)) @tidal-pattern-face)
    :language 'haskell
+   :feature 'cc
+   `((((variable) @var) (:match tidal-ts-cc-label  @var)) @tidal-cc-face)
+   :language 'haskell
    :feature 'keyword
    `(["module" "import" "data" "let" "where" "case" "type"
       "if" "then" "else" "of" "do" "in" "instance" "class"]
@@ -469,6 +480,7 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
     (match keyword)
     (otherwise signature type-sig tidal-runner tidal-hush tidal-functionè-call tidal-pattern)))
 
+
 (defmacro tidal-ts-imenu-name-function (check-func)
   `(lambda (node)
      (if (funcall ,check-func node)
@@ -494,20 +506,42 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
   (setq tidal-literate-p nil))
   ;;(turn-on-font-lock))
 
+(defvar tidal-ts-mode-syntax-table
+  (let ((table (make-syntax-table)))
+    ;; The defaults are mostly fine
+    (mapc
+     (lambda (ls)
+       (mapc
+	(lambda (char)
+	  (modify-syntax-entry char (car ls) table))
+	(cdr ls)))
+     '(("_" ?! ?_)
+       ("w" ?' ?| ?#)
+       ;; Haskell has some goofy comment enders like C-q C-l
+       (">" 13 10 12 11)
+       ("_ 123" ?-)
+       ("(}1nb" ?\{)
+       ("){4nb" ?\})
+       ;;("<" ?#)
+       (">" ?\n)
+       ;; Special operaters
+       ("." ?\, ?\; )
+       ("\"" ?\")
+       ("$`"  ?\`)))
+    table))
+
 (defun tidal-ts-imenu-runner-node-p (node)
   (and (string-match-p "infix\\|variable" (treesit-node-type node))
        (string= (treesit-node-type (treesit-node-parent node)) "top_splice")))
 
 
-(defun tidal-ts-forward-operator (n)
-  (interactive "p")
-  (dotimes (c (or n 1))
-    (treesit-search-forward-goto (treesit-node-at (point)) "operator") c))
-    
-(defun tidal-ts-backward-operator (n)
-  (interactive "p")
-  (dotimes (c (or n 1))
-    (treesit-search-forward-goto (treesit-node-at (point)) "operator" nil 'backward) c))
+(defun tidal-ts-forward-operator (point)
+  (interactive "d")
+  (goto-char (treesit-node-end (treesit-search-forward (treesit-node-at point) tidal-ts-motion-search))))
+
+(defun tidal-ts-backward-operator (point)
+  (interactive "d")
+  (goto-char (treesit-node-end (treesit-search-forward (treesit-node-at point) tidal-ts-motion-search 'backward))))
 
 (add-to-list 'auto-mode-alist '("\\.tidal\\'" . tidal-mode))
       
