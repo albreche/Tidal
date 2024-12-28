@@ -405,7 +405,7 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
    `((literal (_)) @tidal-pattern-face)
    :language 'haskell
    :feature 'cc
-   `((((variable) @var) (:match tidal-ts-cc-label  @var)) @tidal-cc-face)
+   `((((variable) @var) (:match ,tidal-ts-cc-label  @var)) @tidal-cc-face)
    :language 'haskell
    :feature 'keyword
    `(["module" "import" "data" "let" "where" "case" "type"
