@@ -7,7 +7,7 @@
 ;; Homepage: https://github.com/tidalcycles/Tidal
 ;; Version: 0.0.1
 ;; Keywords: tools
-;; Package-Requires: ((haskell-ts-mode) (emacs "25.1"))
+;; Package-Requires: ((haskell-mode "16") (emacs "25.1"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -37,35 +37,19 @@
 (require 'thingatpt)
 (require 'find-lisp)
 (require 'pulse)
-(require 'haskell-ts-mode)
 (require 'subr-x)
 
-(defvar tidal-ts-motion-search "variable"
-   "Predicate for forward-sexp and backward-sexp motion")
+(defcustom  tidal-use-ts t
+  "Set true for treesit (requires emacs 29+ & haskell-ts-mode)."
+  :type '(boolean)
+  :group 'tidal
+  :version "29.4")
 
-(defvar tidal-ts-cc-label "xl1\\|xl2\\|xl3\\|xr1\\|xr2\\|xr3\\|xlh\\|xlm\\|xll\\|xrh\\|xrm\\|xrl\\|xlp\\|xlv\\|xrp\\|xrv"
-  "Regexp matching cc label.")
- 
-(defface tidal-hush-face  '((default :inherit 'font-lock-variable-name-face))
-  "Tidal mode face for hush."
-  :group 'tidal)
+(defun tidal--use-ts ()
+    (and tidal-use-ts (version<= "29.4" emacs-version)))
 
-(defface tidal-runner-face '((default :inherit 'font-lock-variable-name-face))
-  "Tidal mode face for runner (eg: d1)."
-  :group 'tidal)
-
-(defface tidal-function-call-face '((default :inherit 'font-lock-function-call-face))
-  "Tidal mode face for function call."
-  :group 'tidal)
-
-(defface tidal-pattern-face '((default :inherit 'font-lock-string-face))
-  "Tidal mode face for string pattern."
-  :group 'tidal)
-
-(defface tidal-cc-face '((default :inherit 'font-lock-warning-face))
-  "Tidal mode face for cc labels."
-  :group 'tidal)
-
+(when (tidal--use-ts)
+   (require 'tidal-ts))
 
 (defvar tidal-buffer
   "*tidal*"
@@ -303,34 +287,65 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
 
 (defun tidal-mode-keybindings (map)
   "Haskell Tidal keybindings MAP."
-  (keymap-set map "C-c C-s" 'tidal-start-haskell)
-  (keymap-set map "C-c C-v" 'tidal-see-output)
-  (keymap-set map "C-c C-q" 'tidal-quit-haskell)
-  (keymap-set map "C-c C-c" 'tidal-run-line)
-  (keymap-set map "C-c C-e" 'tidal-run-multiple-lines)
-  (keymap-set map "C-<return>" 'tidal-run-multiple-lines)
-  (keymap-set map "C-c C-r" 'tidal-run-region)
-  (keymap-set map "C-c C-l" 'tidal-load-buffer)
-  (keymap-set map "C-c C-i" 'tidal-interrupt-haskell)
-  (keymap-set map "C-c C-m" 'tidal-run-main)
-  (keymap-set map "C-c C-1" 'tidal-run-d1)
-  (keymap-set map "C-c C-2" 'tidal-run-d2)
-  (keymap-set map "C-c C-3" 'tidal-run-d3)
-  (keymap-set map "C-c C-4" 'tidal-run-d4)
-  (keymap-set map "C-c C-5" 'tidal-run-d5)
-  (keymap-set map "C-c C-6" 'tidal-run-d6)
-  (keymap-set map "C-c C-7" 'tidal-run-d7)
-  (keymap-set map "C-c C-8" 'tidal-run-d8)
-  (keymap-set map "C-c C-9" 'tidal-run-d9)
-  (keymap-set map "C-v C-1" 'tidal-stop-d1)
-  (keymap-set map "C-v C-2" 'tidal-stop-d2)
-  (keymap-set map "C-v C-3" 'tidal-stop-d3)
-  (keymap-set map "C-v C-4" 'tidal-stop-d4)
-  (keymap-set map "C-v C-5" 'tidal-stop-d5)
-  (keymap-set map "C-v C-6" 'tidal-stop-d6)
-  (keymap-set map "C-v C-7" 'tidal-stop-d7)
-  (keymap-set map "C-v C-8" 'tidal-stop-d8)
-  (keymap-set map "C-v C-9" 'tidal-stop-d9))
+  (define-key map [?\C-c ?\C-s] 'tidal-start-haskell)
+  (define-key map [?\C-c ?\C-v] 'tidal-see-output)
+  (define-key map [?\C-c ?\C-q] 'tidal-quit-haskell)
+  (define-key map [?\C-c ?\C-c] 'tidal-run-line)
+  (define-key map [?\C-c ?\C-e] 'tidal-run-multiple-lines)
+  (define-key map (kbd "<C-return>") 'tidal-run-multiple-lines)
+  (define-key map [?\C-c ?\C-r] 'tidal-run-region)
+  (define-key map [?\C-c ?\C-l] 'tidal-load-buffer)
+  (define-key map [?\C-c ?\C-i] 'tidal-interrupt-haskell)
+  (define-key map [?\C-c ?\C-m] 'tidal-run-main)
+  (define-key map [?\C-c ?\C-1] 'tidal-run-d1)
+  (define-key map [?\C-c ?\C-2] 'tidal-run-d2)
+  (define-key map [?\C-c ?\C-3] 'tidal-run-d3)
+  (define-key map [?\C-c ?\C-4] 'tidal-run-d4)
+  (define-key map [?\C-c ?\C-5] 'tidal-run-d5)
+  (define-key map [?\C-c ?\C-6] 'tidal-run-d6)
+  (define-key map [?\C-c ?\C-7] 'tidal-run-d7)
+  (define-key map [?\C-c ?\C-8] 'tidal-run-d8)
+  (define-key map [?\C-c ?\C-9] 'tidal-run-d9)
+  (define-key map [?\C-v ?\C-1] 'tidal-stop-d1)
+  (define-key map [?\C-v ?\C-2] 'tidal-stop-d2)
+  (define-key map [?\C-v ?\C-3] 'tidal-stop-d3)
+  (define-key map [?\C-v ?\C-4] 'tidal-stop-d4)
+  (define-key map [?\C-v ?\C-5] 'tidal-stop-d5)
+  (define-key map [?\C-v ?\C-6] 'tidal-stop-d6)
+  (define-key map [?\C-v ?\C-7] 'tidal-stop-d7)
+  (define-key map [?\C-v ?\C-8] 'tidal-stop-d8)
+  (define-key map [?\C-v ?\C-9] 'tidal-stop-d9))
+
+(defun tidal-turn-on-keybindings ()
+  "Haskell Tidal keybindings in the local map."
+  (local-set-key [?\C-c ?\C-s] 'tidal-start-haskell)
+  (local-set-key [?\C-c ?\C-v] 'tidal-see-output)
+  (local-set-key [?\C-c ?\C-q] 'tidal-quit-haskell)
+  (local-set-key [?\C-c ?\C-c] 'tidal-run-line)
+  (local-set-key [?\C-c ?\C-e] 'tidal-run-multiple-lines)
+  (local-set-key (kbd "<C-return>") 'tidal-run-multiple-lines)
+  (local-set-key [?\C-c ?\C-r] 'tidal-run-region)
+  (local-set-key [?\C-c ?\C-l] 'tidal-load-buffer)
+  (local-set-key [?\C-c ?\C-i] 'tidal-interrupt-haskell)
+  (local-set-key [?\C-c ?\C-m] 'tidal-run-main)
+  (local-set-key [?\C-c ?\C-1] 'tidal-run-d1)
+  (local-set-key [?\C-c ?\C-2] 'tidal-run-d2)
+  (local-set-key [?\C-c ?\C-3] 'tidal-run-d3)
+  (local-set-key [?\C-c ?\C-4] 'tidal-run-d4)
+  (local-set-key [?\C-c ?\C-5] 'tidal-run-d5)
+  (local-set-key [?\C-c ?\C-6] 'tidal-run-d6)
+  (local-set-key [?\C-c ?\C-7] 'tidal-run-d7)
+  (local-set-key [?\C-c ?\C-8] 'tidal-run-d8)
+  (local-set-key [?\C-c ?\C-9] 'tidal-run-d9)
+  (local-set-key [?\C-v ?\C-1] 'tidal-stop-d1)
+  (local-set-key [?\C-v ?\C-2] 'tidal-stop-d2)
+  (local-set-key [?\C-v ?\C-3] 'tidal-stop-d3)
+  (local-set-key [?\C-v ?\C-4] 'tidal-stop-d4)
+  (local-set-key [?\C-v ?\C-5] 'tidal-stop-d5)
+  (local-set-key [?\C-v ?\C-6] 'tidal-stop-d6)
+  (local-set-key [?\C-v ?\C-7] 'tidal-stop-d7)
+  (local-set-key [?\C-v ?\C-8] 'tidal-stop-d8)
+  (local-set-key [?\C-v ?\C-9] 'tidal-stop-d9))
 
 
 (defun tidal-mode-menu (map)
@@ -366,184 +381,69 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
     (tidal-mode-menu map)
     (setq tidal-mode-map map)))
 
+;; see C-h i g (elisp) Warning tips
+(defvar tidal-ts-prettify-symbols-alist)
+(defvar tidal-ts-font-lock)
+(defvar tidal-ts-font-lock-feature-list)
+(defvar haskell-literate)
+(declare-function tidal-ts-imenu-runner-node-p "tidal-ts.el") 
+(declare-function tidal-ts-imenu-name-function "tidal-ts.el")
+(declare-function haskell-ts-mode "haskell-ts.el")
+(declare-function tidal-mode "tidal.el")
+(declare-function haskell-mode "haskell.el")
+
+
+(when (tidal--use-ts)
 ;;;###autoload
-(define-derived-mode
-  literate-tidal-mode
-  tidal-mode
-  "Literate Haskell Tidal"
-  "Major mode for interacting with an inferior haskell process."
-  (set (make-local-variable 'paragraph-start) "\f\\|[ \t]*$")
-  (set (make-local-variable 'paragraph-separate) "[ \t\f]*$")
-  (setq tidal-literate-p t)
-  (setq haskell-literate 'bird)
-  (turn-on-font-lock))
+  (define-derived-mode tidal-mode  haskell-ts-mode
+    "Haskell Tidal"
+    "Major mode for interacting with an inferior haskell process. Use treesit"
+    (set (make-local-variable 'paragraph-start) "\f\\|[ \t]*$")
+    (set (make-local-variable 'paragraph-separate) "[ \t\f]*$")
+    (setq tidal-literate-p nil)
+    ;; imenu
+    (setq-local treesit-simple-imenu-settings
+		(append treesit-simple-imenu-settings
+			`(("Runner..."  tidal-ts-imenu-runner-node-p nil ,(tidal-ts-imenu-name-function #'tidal-ts-imenu-runner-node-p)))
+			))
+    ;; font-lock
+    
+    (setq-local prettify-symbols-alist tidal-ts-prettify-symbols-alist)
+    (setq-local treesit-font-lock-settings tidal-ts-font-lock)
+    (setq-local treesit-font-lock-feature-list
+		tidal-ts-font-lock-feature-list)))
+
+(unless (tidal--use-ts)
+  
+;;;###autoload
+    (define-derived-mode
+      tidal-mode
+      haskell-mode
+      "Haskell Tidal"
+      "Major mode for interacting with an inferior haskell process."
+      (set (make-local-variable 'paragraph-start) "\f\\|[ \t]*$")
+      (set (make-local-variable 'paragraph-separate) "[ \t\f]*$")
+      (setq tidal-literate-p nil)
+      (turn-on-font-lock))
+    
+  
+;;;###autoload
+  (define-derived-mode
+    literate-tidal-mode
+    tidal-mode
+    "Literate Haskell Tidal"
+    "Major mode for interacting with an inferior haskell process."
+    (set (make-local-variable 'paragraph-start) "\f\\|[ \t]*$")
+    (set (make-local-variable 'paragraph-separate) "[ \t\f]*$")
+    (setq tidal-literate-p t)
+    (setq haskell-literate 'bird)
+    (turn-on-font-lock)))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.ltidal\\'" . literate-tidal-mode))
 
-(defvar tidal-ts-prettify-symbols-alist
-  (append haskell-ts-prettify-symbols-alist
-	       '(("<~" . "↜")
-		 ("~>" . "↝"))))
-
-(defvar tidal-ts-font-lock
-  (treesit-font-lock-rules
-   :language 'haskell
-   :feature 'tidal-hush
-   `(((top_splice (variable) @tidal-hush-face) (:match "hush" @tidal-hush-face)))
-   :language 'haskell
-   :feature 'tidal-runner
-   `((top_splice
-     (infix left_operand: (_) @tidal-runner-face 
-	    operator: (_))))
-   :language 'haskell
-   :feature 'tidal-function
-   `((apply function: (variable) @tidal-function-call-face
-	argument: (_)))
-   :language 'haskell
-   :feature 'tidal-pattern
-   `((literal (_)) @tidal-pattern-face)
-   :language 'haskell
-   :feature 'cc
-   `((((variable) @var) (:match ,tidal-ts-cc-label  @var)) @tidal-cc-face)
-   :language 'haskell
-   :feature 'keyword
-   `(["module" "import" "data" "let" "where" "case" "type"
-      "if" "then" "else" "of" "do" "in" "instance" "class"]
-     @font-lock-keyword-face)
-   :language 'haskell
-   :feature 'otherwise
-   :override t
-   `(((match (guards guard: (boolean (variable) @font-lock-keyword-face)))
-      (:match "otherwise" @font-lock-keyword-face)))
-   :language 'haskell
-   :feature 'type-sig
-   "(signature (binding_list (variable) @font-lock-doc-markup-face))
-    (signature (variable) @font-lock-doc-markup-face)"
-   :language 'haskell
-   :feature 'args
-   :override 'keep
-   (concat
-    "(function (infix left_operand: (_) @haskell-ts--fontify-arg))"
-    "(function (infix right_operand: (_) @haskell-ts--fontify-arg))"
-    "(generator . (_) @haskell-ts--fontify-arg)"
-    "(bind (as (variable) . (_) @haskell-ts--fontify-arg))"
-    "(patterns) @haskell-ts--fontify-arg")
-   :language 'haskell
-   :feature 'type
-   `((type) @font-lock-type-face
-     (constructor) @font-lock-type-face)
-   :language 'haskell
-   :override t
-   :feature 'signature
-   `((signature (function) @haskell-ts--fontify-type)
-     (context (function) @haskell-ts--fontify-type))
-   :language 'haskell
-   :feature 'match
-   `((match ("|" @font-lock-doc-face) ("=" @font-lock-doc-face))
-     (list_comprehension ("|" @font-lock-doc-face
-			  (qualifiers (generator "<-" @font-lock-doc-face))))
-     (match ("->" @font-lock-doc-face)))
-   :language 'haskell
-   :feature 'comment
-   `(((comment) @font-lock-comment-face)
-     ((haddock) @font-lock-doc-face))
-   :language 'haskell
-   :feature 'pragma
-   `((pragma) @font-lock-preprocessor-face
-     (cpp) @font-lock-preprocessor-face)
-   :language 'haskell
-   :feature 'str
-   :override t
-   `(
-     (quasiquote (quoter) @font-lock-type-face)
-     (quasiquote (quasiquote_body) @font-lock-preprocessor-face))
-   :language 'haskell
-   :feature 'parens
-   :override t
-   `(["(" ")" "[" "]"] @font-lock-operator-face
-     (infix operator: (_) @nano-salient))
-   :language 'haskell
-   :feature 'function
-   :override t
-   `((function name: (variable) @font-lock-function-name-face)
-     (function (infix (operator)  @font-lock-function-name-face))
-     (declarations (type_synomym (name) @font-lock-function-name-face))
-     (bind (variable) @font-lock-function-name-face)
-     (function (infix (infix_id (variable) @font-lock-function-name-face)))
-     (bind (as (variable) @font-lock-function-name-face))))
-  "A function that returns the treesit font lock lock settings for haskell.")
-
-(defvar tidal-ts-font-lock-feature-list
-  `((comment str pragma parens)
-    (type definition function args)
-    (match keyword)
-    (otherwise signature type-sig tidal-runner tidal-hush tidal-functionè-call tidal-pattern)))
-
-
-(defmacro tidal-ts-imenu-name-function (check-func)
-  `(lambda (node)
-     (if (funcall ,check-func node)
-	 (treesit-node-text node)
-       nil)))
-
-;;;###autoload
-(define-derived-mode tidal-mode haskell-ts-mode
-  "Haskell Tidal"
-  "Major mode for interacting with an inferior haskell process."
-  (set (make-local-variable 'paragraph-start) "\f\\|[ \t]*$")
-  (set (make-local-variable 'paragraph-separate) "[ \t\f]*$")
-  ;; imenu
-  (setq-local treesit-simple-imenu-settings
-	      (append treesit-simple-imenu-settings
-		      `(("Runner..."  tidal-ts-imenu-runner-node-p nil ,(tidal-ts-imenu-name-function #'tidal-ts-imenu-runner-node-p)))
-		      ))
-  ;; font-lock
-  (setq-local prettify-symbols-alist tidal-ts-prettify-symbols-alist)
-  (setq-local treesit-font-lock-settings tidal-ts-font-lock)
-  (setq-local treesit-font-lock-feature-list
-	      tidal-ts-font-lock-feature-list)
-  (setq tidal-literate-p nil))
-  ;;(turn-on-font-lock))
-
-(defvar tidal-ts-mode-syntax-table
-  (let ((table (make-syntax-table)))
-    ;; The defaults are mostly fine
-    (mapc
-     (lambda (ls)
-       (mapc
-	(lambda (char)
-	  (modify-syntax-entry char (car ls) table))
-	(cdr ls)))
-     '(("_" ?! ?_)
-       ("w" ?' ?| ?#)
-       ;; Haskell has some goofy comment enders like C-q C-l
-       (">" 13 10 12 11)
-       ("_ 123" ?-)
-       ("(}1nb" ?\{)
-       ("){4nb" ?\})
-       ;;("<" ?#)
-       (">" ?\n)
-       ;; Special operaters
-       ("." ?\, ?\; )
-       ("\"" ?\")
-       ("$`"  ?\`)))
-    table))
-
-(defun tidal-ts-imenu-runner-node-p (node)
-  (and (string-match-p "infix\\|variable" (treesit-node-type node))
-       (string= (treesit-node-type (treesit-node-parent node)) "top_splice")))
-
-
-(defun tidal-ts-forward-operator (point)
-  (interactive "d")
-  (goto-char (treesit-node-end (treesit-search-forward (treesit-node-at point) tidal-ts-motion-search))))
-
-(defun tidal-ts-backward-operator (point)
-  (interactive "d")
-  (goto-char (treesit-node-end (treesit-search-forward (treesit-node-at point) tidal-ts-motion-search 'backward))))
-
 (add-to-list 'auto-mode-alist '("\\.tidal\\'" . tidal-mode))
-      
 (provide 'tidal)
+
+
 ;;; tidal.el ends here
